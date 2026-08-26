@@ -1,4 +1,4 @@
-SupabaseのURLとキー
+//SupabaseのURLとキー
 const SUPABASE_URL = 'https://lwidtpxsjquplvzcdsev.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_tYFGjp6_GiqW8OpDfDSqVQ_1TyasvCn';
 
