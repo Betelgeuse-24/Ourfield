@@ -166,6 +166,15 @@ const cards = [
 
 ];
 
+const starting_bell_sound = new Audio('sounds/bell.wav');
+const defeat_sound = new Audio('sounds/defeat.wav');
+const click_sound = new Audio('sounds/click.wav');
+const attack_sound = new Audio('sounds/attack.wav');
+const defense_sound = new Audio('sounds/defense.wav');
+const wearing_sound = new Audio('sounds/wearing.wav');
+const eating_sound = new Audio('sounds/eating.wav');
+const paper_sound = new Audio('sounds/paper.wav');
+
 // ----------------------
 // ゲーム状態
 // ----------------------
@@ -429,16 +438,6 @@ function render() {
 function addLog(text) {
   state.log.unshift(text);
 }
-
-
-const starting_bell_sound = new Audio('sounds/bell.wav');
-const defeat_sound = new Audio('sounds/defeat.wav');
-const click_sound = new Audio('sounds/click.wav');
-const attack_sound = new Audio('sounds/attack.wav');
-const defense_sound = new Audio('sounds/defense.wav');
-const wearing_sound = new Audio('sounds/wearing.wav');
-const eating_sound = new Audio('sounds/eating.wav');
-const paper_sound = new Audio('sounds/paper.wav');
 
 // ----------------------
 initGame();
