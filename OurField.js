@@ -248,10 +248,10 @@ function randomCard() {
 // ----------------------
 function playCard(card, isRemote = false) {
 
-  if (!isRemote && state.turn !== 0) {
-    addLog("相手のターンです！");
-    return;
-  }
+  // if (!isRemote && state.turn !== 0) {
+  //   addLog("相手のターンです！");
+  //   return;
+  // }
 
   const p = state.players[state.turn];
   const enemy = state.players[1 - state.turn];
@@ -323,16 +323,16 @@ function playCard(card, isRemote = false) {
 
   //通信処理
 
-  if (!isRemote) {
-    channel.send({
-      type: 'broadcast',
-      event: 'play-card',
-      payload: { 
-        cardId: card.id, 
-        playerIndex: state.turn
-      }
-    });
-  }
+  // if (!isRemote) {
+  //   channel.send({
+  //     type: 'broadcast',
+  //     event: 'play-card',
+  //     payload: { 
+  //       cardId: card.id, 
+  //       playerIndex: state.turn
+  //     }
+  //   });
+  // }
 
   // 手札から削除
   p.hand = p.hand.filter(c => c !== card);
@@ -458,17 +458,17 @@ function addLog(text) {
   state.log.unshift(text);
 }
 
-channel.on('broadcast', { event: 'play-card' }, (data) => {
-  const { cardId, playerIndex } = data.payload;
+// channel.on('broadcast', { event: 'play-card' }, (data) => {
+//   const { cardId, playerIndex } = data.payload;
 
-  // 相手の手札から使われたカードを探す
-  const enemyHand = state.players[playerIndex].hand;
-  const usedCard = enemyHand.find(c => c.id === cardId);
+//   // 相手の手札から使われたカードを探す
+//   const enemyHand = state.players[playerIndex].hand;
+//   const usedCard = enemyHand.find(c => c.id === cardId);
 
-  if (usedCard) {
-    playCard(usedCard, true);
-  }
-}).subscribe();
+//   if (usedCard) {
+//     playCard(usedCard, true);
+//   }
+// }).subscribe();
 
 // ----------------------
 initGame();
