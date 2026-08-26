@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset='utf-8'>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OurField</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="OurField.css">
+  <meta name="description" content="text">
+</head>
+<body>
+    <div id="container">
+
+        <h1>Ourfield</h1>
+
+        <!-- <button id="hostBtn">部屋を作る（Host）</button>
+        <button id="joinBtn">参加する（Join）</button> -->
+
+        <div class="player">
+          <h2>プレイヤー1（あなた）</h2>
+          HP: <span id="p1hp"></span><br>
+          防御力: <span id="p1shield"></span>
+          資金: <span id="p1money"></span>
+        </div>
+    
+        <div class="player">
+          <h2>プレイヤー2（相手）</h2>
+          HP: <span id="p2hp"></span><br>
+          防御力: <span id="p2shield"></span>
+          資金: <span id="p2money"></span>
+        </div>
+    
+        <h3>手札</h3>
+        <div id="hand"></div>
+
+        <div id="cardInfoBox" style="visibility: hidden; border: 5px solid darkcyan; position: absolute; top: 600px; left: 1400px; width: 400px; height: 96px; background-color: rgb(167, 194, 218);">
+          <div id="cardName" style="border: 5px double darkcyan; padding: 3px; width: 283px; position: relative;"></div>
+          <div id="cardPower" style="margin: 10px; position: relative;"></div>
+          <div id="chosenCard" style="border-left: 5px solid darkcyan; position: absolute; top: 0px; right: 0px;">
+          <div></div>
+          </div>
+        </div>
+        
+    
+        <h3>ログ</h3>
+        <div id="log"></div>
+
+    </div>
+    <script src="OurField.js"></script>
+</body>
+</html>
