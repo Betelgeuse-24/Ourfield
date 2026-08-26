@@ -1,8 +1,8 @@
 // ==========================================
 // 1. 設定（変数名を supabaseClient に変更！）
 // ==========================================
-const SUPABASE_URL = 'https://あなたのプロジェクトID.supabase.co';
-const SUPABASE_KEY = 'あなたのPublishable_Key';
+const SUPABASE_URL = 'https://lwidtpxsjquplvzcdsev.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_tYFGjp6_GiqW8OpDfDSqVQ_1TyasvCn';
 
 // ★ここ！変数名を「supabaseClient」に変更してバッティングを回避！
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
