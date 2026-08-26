@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Supabaseマルチプレイテスト</title>
+  <!-- ① Supabaseの公式JavaScriptライブラリを読み込む -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #f0f0f0;
+      font-family: sans-serif;
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px;
+      border-radius: 5px;
+      pointer-events: none;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">画面のどこかをクリックしてみてな！</div>
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- ② 自分の処理を書いたスクリプトを読み込む -->
+  <script src="script.js"></script>
+</body>
+</html>
