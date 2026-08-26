@@ -1,0 +1,16 @@
+body{
+    background-color: #7db0e4;
+}
+
+img{
+    vertical-align: middle;
+}
+
+.handCard{
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.handCard:hover{
+    filter: brightness(70%);
+}
