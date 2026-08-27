@@ -23,6 +23,12 @@ function joinRoom(id) {
   channel
     .on('broadcast', { event: 'send-action' }, (data) => onReceiveAction(data.payload))
     .on('broadcast', { event: 'sync-state' }, (data) => onReceiveSync(data.payload))
+    .on('broadcast', { event: 'join-player' }, () => {
+      if (myPlayerIndex === 0) {
+        addLog("対戦相手が参加しました！");
+        broadcastState(); // ゲストが入ってきたから最新状態を送ってあげる！
+      }
+    })
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         addLog(`部屋【${id}】に接続完了！`);
