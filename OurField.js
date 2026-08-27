@@ -13,6 +13,19 @@ const channel = supabaseClient.channel('game-room', {
   }
 });
 
+//プレイヤー識別
+let myPlayerIndex = null;
+let roomId = null;
+
+document.getElementById("hostBtn").onclick = () => {
+  roomId = Math.floor(1000 + Math.random() * 9000).toString();
+  myPlayerIndex = 0;
+  initGame();
+}
+document.getElementById("joinBtn").onclick = () => {
+  myPlayerIndex = 1;
+}
+
 // ----------------------
 // カード定義
 // ----------------------
@@ -166,6 +179,7 @@ const cards = [
 
 ];
 
+//効果音リスト
 const starting_bell_sound = new Audio('sounds/bell.wav');
 const defeat_sound = new Audio('sounds/defeat.wav');
 const click_sound = new Audio('sounds/click.wav');
@@ -175,9 +189,8 @@ const wearing_sound = new Audio('sounds/wearing.wav');
 const eating_sound = new Audio('sounds/eating.wav');
 const paper_sound = new Audio('sounds/paper.wav');
 
-// ----------------------
+
 // ゲーム状態
-// ----------------------
 const state = {
   players: [
     { hp: 400, shield: 0, money: 300, hand: [], blueprints: []},
@@ -190,9 +203,8 @@ const state = {
 const rankCardList = [[],[],[],[],[],[],[],[],[],[]];
 const rankPropotion = [12,40,76,94,98,100,0,0,0,0];//sum = 100
 
-// ----------------------
+
 // 初期化
-// ----------------------
 function initGame() {
 
   // ランク別のカードを計測
@@ -210,6 +222,8 @@ function initGame() {
   render();
 }
 
+
+//シャッフル関数
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -217,10 +231,14 @@ function shuffle(array) {
   }
 }
 
+
+//IDに沿ってカードを整列
 function alignById(array) {
   array.sort((a,b) => a.id - b.id);
 }
 
+
+//確率に応じてランダムなカードを生成
 function randomCard() {
 
   const randomNum = Math.floor(Math.random() * 100);
@@ -243,15 +261,13 @@ function randomCard() {
   return structuredClone(cards[rankCardList[chosenRank][Math.floor(Math.random() * rankCardList[chosenRank].length)]]);
 }//ランクに応じてランダムにカードを選択し、そのコピーを返す
 
-// ----------------------
 // カード使用処理
-// ----------------------
 function playCard(card, isRemote = false) {
 
-  if (!isRemote && state.turn !== 0) {
+  if (!isRemote && state.turn !== myPlayerIndex) {
     addLog("相手のターンです！");
     return;
-  }
+  }//自身がこの関数を遠隔で操作しておらず、かつ自分のターンのときは操作できない
 
   const p = state.players[state.turn];
   const enemy = state.players[1 - state.turn];
@@ -329,7 +345,7 @@ function playCard(card, isRemote = false) {
       event: 'play-card',
       payload: { 
         cardId: card.id, 
-        playerIndex: state.turn
+        playerIndex: myPlayerIndex
       }
     });
   }
@@ -365,6 +381,7 @@ function playCard(card, isRemote = false) {
   render();
 }
 
+//引数番目のプレイヤーがカードを引く
 function drawCard(playerIndex) {
   const card = randomCard();
   if(state.players[playerIndex].blueprints.includes(card.id)){
@@ -374,18 +391,14 @@ function drawCard(playerIndex) {
   }
 }
 
-// ----------------------
 // 相手の行動（超シンプルAI）
-// ----------------------
 function enemyTurn() {
   const enemy = state.players[1];
   const card = enemy.hand[Math.floor(Math.random() * enemy.hand.length)];
   playCard(card);
 }
 
-// ----------------------
 // 描画
-// ----------------------
 const chosenCardDiv = document.getElementById("chosenCard");
 const cardInfoBoxDiv = document.getElementById("cardInfoBox");
 
@@ -454,10 +467,12 @@ function render() {
   document.getElementById("log").innerHTML = state.log.join("<br>");
 }
 
+//ログを追加
 function addLog(text) {
   state.log.unshift(text);
 }
 
+//
 channel.on('broadcast', { event: 'play-card' }, (data) => {
   const { cardId, playerIndex } = data.payload;
 
@@ -471,5 +486,5 @@ channel.on('broadcast', { event: 'play-card' }, (data) => {
 }).subscribe();
 
 // ----------------------
-initGame();
+
 
