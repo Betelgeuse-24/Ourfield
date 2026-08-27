@@ -500,7 +500,7 @@ function render() {
   handDiv.innerHTML = "";
 
   if (state.turn === myPlayerIndex) {
-    state.players[myPlayerIndex].hand.forEach(card, index => {
+    state.players[myPlayerIndex].hand.forEach((card, index) => {
       const div = document.createElement("div");
       const img = document.createElement("img");
       div.classList.add("handCard")
