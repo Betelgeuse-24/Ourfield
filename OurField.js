@@ -43,12 +43,15 @@ document.getElementById("hostBtn").onclick = () => {
   myPlayerIndex = 0;
   initGame();
   joinRoom(roomId);
-  alert(`部屋コード【 ${roomId} 】を相手に教えてください！`);
+  alert(`部屋コード【 ${roomId} 】を相手に教えてください!`);
 };
 
 document.getElementById("joinBtn").onclick = () => {
-  const inputRoom = prompt("部屋コード（4桁の数字）を入力してください！：");
+  const inputRoom = prompt("部屋コード（4桁の数字）を入力してください!：");
+  console.log('roomcodeDetected');
   if (!inputRoom) return;
+  console.log('inputpassed');
+
 
   roomId = inputRoom;
   myPlayerIndex = 1;
