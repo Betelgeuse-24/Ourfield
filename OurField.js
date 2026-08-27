@@ -57,6 +57,8 @@ document.getElementById("joinBtn").onclick = () => {
   roomId = inputRoom;
   myPlayerIndex = 1;
   joinRoom(roomId);
+  console.log('joined');
+
 };
 
 // ホストから全員（ゲスト）へ最新状態を送信
