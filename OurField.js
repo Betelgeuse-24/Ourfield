@@ -7,11 +7,32 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ==========================================
 // リアルタイム通信の部屋を設定
 // ==========================================
-const channel = supabaseClient.channel('game-room', {
-  config: {
-    broadcast: { self: false }
-  }
-});
+
+// const channel = supabaseClient.channel('game-room', {
+//   config: {
+//     broadcast: { self: false }
+//   }
+// });
+
+function joinRoom(id) {
+  channel = supabaseClient.channel(`game-room-${id}`, {
+    config: { broadcast: { self: false } }
+  });
+
+  // イベント受信処理
+  channel
+    .on('broadcast', { event: 'send-action' }, (data) => onReceiveAction(data.payload))
+    .on('broadcast', { event: 'sync-state' }, (data) => onReceiveSync(data.payload))
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        addLog(`部屋【${id}】に接続完了！`);
+        // ホストなら接続完了時に初期データをゲストへ同期
+        if (myPlayerIndex === 0) broadcastState();
+      }
+    });
+}
+
+
 
 //プレイヤー識別
 let myPlayerIndex = null;
@@ -21,9 +42,45 @@ document.getElementById("hostBtn").onclick = () => {
   roomId = Math.floor(1000 + Math.random() * 9000).toString();
   myPlayerIndex = 0;
   initGame();
-}
+  joinRoom(roomId);
+};
+
 document.getElementById("joinBtn").onclick = () => {
+  const inputRoom = prompt("部屋コード（4桁の数字）を入力してな：");
+  if (!inputRoom) return;
+
+  roomId = inputRoom;
   myPlayerIndex = 1;
+  joinRoom(roomId);
+};
+
+// ホストから全員（ゲスト）へ最新状態を送信
+function broadcastState() {
+  if (myPlayerIndex !== 0) return; // ホスト以外は送信しない
+  channel.send({
+    type: 'broadcast',
+    event: 'sync-state',
+    payload: { state: state }
+  });
+}
+
+// 【ホスト限定】ゲストから「カード使ったで」と届いたときの処理
+function onReceiveAction(payload) {
+  if (myPlayerIndex !== 0) return; // ホストだけが計算を担当
+
+  const { playerIndex, cardIndex } = payload;
+  executeCardLogic(playerIndex, cardIndex);
+  
+  // 計算結果を最新のstateとして全員に一斉送信！
+  broadcastState();
+  render();
+}
+
+// 【ゲスト限定】ホストから最新状態が届いたときの処理
+function onReceiveSync(payload) {
+  // ホストから届いた最新データを自分の state に上書き！
+  Object.assign(state, payload.state);
+  render();
 }
 
 // ----------------------
@@ -193,8 +250,8 @@ const paper_sound = new Audio('sounds/paper.wav');
 // ゲーム状態
 const state = {
   players: [
-    { hp: 400, shield: 0, money: 300, hand: [], blueprints: []},
-    { hp: 400, shield: 0, money: 300, hand: [], blueprints: []}
+    { name: null, hp: 400, shield: 0, money: 300, hand: [], blueprints: []},
+    { name: null, hp: 400, shield: 0, money: 300, hand: [], blueprints: []}
   ],
   turn: 0, // 0 = あなた, 1 = 相手
   log: []
@@ -261,16 +318,42 @@ function randomCard() {
   return structuredClone(cards[rankCardList[chosenRank][Math.floor(Math.random() * rankCardList[chosenRank].length)]]);
 }//ランクに応じてランダムにカードを選択し、そのコピーを返す
 
-// カード使用処理
-function playCard(card, isRemote = false) {
-
-  if (!isRemote && state.turn !== myPlayerIndex) {
+// カード使用の実行（クリック時）
+function playCard(cardIndex) {
+  // 自分のターンじゃないなら操作不可
+  if (state.turn !== myPlayerIndex) {
     addLog("相手のターンです！");
     return;
-  }//自身がこの関数を遠隔で操作しておらず、かつ自分のターンのときは操作できない
+  }
 
-  const p = state.players[state.turn];
-  const enemy = state.players[1 - state.turn];
+  if (myPlayerIndex === 0) {
+    // 【ホストの場合】自分で直接処理を計算して、結果を全員に配る
+    executeCardLogic(0, cardIndex);
+    broadcastState();
+    render();
+  } else {
+    // 【ゲストの場合】ホストに「このカード使ったで」とお願いを送るだけ
+    channel.send({
+      type: 'broadcast',
+      event: 'send-action',
+      payload: { playerIndex: 1, cardIndex: cardIndex }
+    });
+  }
+}
+
+// カード実行処理
+function executeCardLogic(playerIndex, cardIndex) {
+
+  // if (!isRemote && state.turn !== myPlayerIndex) {
+  //   addLog("相手のターンです！");
+  //   return;
+  // }//自身がこの関数を遠隔で操作しておらず、かつ自分のターンのときは操作できない
+
+  const p = state.players[playerIndex];
+  const enemy = state.players[1 - playerIndex];
+  const card = p.hand[cardIndex];
+
+  if (!card) return;
 
   if (card.type === "attack") {
     const dmg = Math.max(0, card.power - enemy.shield);
@@ -337,21 +420,8 @@ function playCard(card, isRemote = false) {
     }
   }
 
-  //通信処理
-
-  if (!isRemote) {
-    channel.send({
-      type: 'broadcast',
-      event: 'play-card',
-      payload: { 
-        cardId: card.id, 
-        playerIndex: myPlayerIndex
-      }
-    });
-  }
-
   // 手札から削除
-  p.hand = p.hand.filter(c => c !== card);
+  p.hand = p.hand.splice(cardIndex, 1);
   //state.discard.push(card);
 
   // ターン交代
@@ -378,6 +448,7 @@ function playCard(card, isRemote = false) {
   }
 
   alignById(state.players[0].hand);
+  alignById(state.players[1].hand);
   render();
 }
 
@@ -472,19 +543,19 @@ function addLog(text) {
   state.log.unshift(text);
 }
 
-//
-channel.on('broadcast', { event: 'play-card' }, (data) => {
-  const { cardId, playerIndex } = data.payload;
+// //
+// channel.on('broadcast', { event: 'play-card' }, (data) => {
+//   const { cardId, playerIndex } = data.payload;
 
-  // 相手の手札から使われたカードを探す
-  const enemyHand = state.players[playerIndex].hand;
-  const usedCard = enemyHand.find(c => c.id === cardId);
+//   // 相手の手札から使われたカードを探す
+//   const enemyHand = state.players[playerIndex].hand;
+//   const usedCard = enemyHand.find(c => c.id === cardId);
 
-  if (usedCard) {
-    playCard(usedCard, true);
-  }
-}).subscribe();
+//   if (usedCard) {
+//     playCard(usedCard, true);
+//   }
+// }).subscribe();
 
-// ----------------------
+// // ----------------------
 
 
