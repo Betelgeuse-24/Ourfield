@@ -26,6 +26,7 @@ function joinRoom(id) {
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         addLog(`部屋【${id}】に接続完了！`);
+        render();
         // ホストなら接続完了時に初期データをゲストへ同期
         if (myPlayerIndex === 0) broadcastState();
       }
@@ -42,9 +43,10 @@ document.getElementById("hostBtn").onclick = () => {
   roomId = Math.floor(1000 + Math.random() * 9000).toString();
   myPlayerIndex = 0;
   
+  initGame();
   joinRoom(roomId);
   alert(`部屋コード【 ${roomId} 】を相手に教えてください!`);
-  initGame();
+  
 };
 
 document.getElementById("joinBtn").onclick = () => {
