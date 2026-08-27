@@ -47,6 +47,7 @@ document.getElementById("hostBtn").onclick = () => {
 };
 
 document.getElementById("joinBtn").onclick = () => {
+  console.log('Btnclicked');
   const inputRoom = prompt("部屋コード（4桁の数字）を入力してください!：");
   console.log('roomcodeDetected');
   if (!inputRoom) return;
