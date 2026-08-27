@@ -422,7 +422,7 @@ function executeCardLogic(playerIndex, cardIndex) {
   }
 
   // 手札から削除
-  p.hand = p.hand.splice(cardIndex, 1);
+  p.hand.splice(cardIndex, 1);
   //state.discard.push(card);
 
   // ターン交代
@@ -432,15 +432,28 @@ function executeCardLogic(playerIndex, cardIndex) {
   drawCard(state.turn);
 
   // 相手のターンなら自動行動
-  if (enemy.hp > 0 && state.turn === 1) {
-    setTimeout(enemyTurn, 800);
-  }else if(enemy.hp <= 0 && state.turn === 1){
+  // if (enemy.hp > 0 && state.turn === 1) {
+  //   setTimeout(enemyTurn, 800);
+  // }else if(enemy.hp <= 0 && state.turn === 1){
+  //   addLog("");
+  //   addLog("/-------------------/");
+  //   addLog("/------勝利！----/");
+  //   addLog("/-------------------/");
+  //   starting_bell_sound.play();
+  // }else if(enemy.hp <= 0 && state.turn === 0){
+  //   addLog("");
+  //   addLog("/-------------------/");
+  //   addLog("/------敗北...----/");
+  //   addLog("/-------------------/");
+  //   defeat_sound.play();
+  // }
+  if(enemy.hp <= 0 && state.turn === myPlayerIndex){
     addLog("");
     addLog("/-------------------/");
     addLog("/------勝利！----/");
     addLog("/-------------------/");
     starting_bell_sound.play();
-  }else if(enemy.hp <= 0 && state.turn === 0){
+  }else if(enemy.hp <= 0 && state.turn === myPlayerIndex){
     addLog("");
     addLog("/-------------------/");
     addLog("/------敗北...----/");
@@ -456,11 +469,11 @@ function executeCardLogic(playerIndex, cardIndex) {
 //引数番目のプレイヤーがカードを引く
 function drawCard(playerIndex) {
   const card = randomCard();
-  if(state.players[playerIndex].blueprints.includes(card.id)){
-    drawCard(playerIndex);
-  }else{
-    state.players[playerIndex].hand.push(card);
+  // 設計図が被っている間はループして引き直す
+  while (card.type === "blueprint" && state.players[playerIndex].blueprints.includes(card.id)) {
+    card = randomCard();
   }
+  state.players[playerIndex].hand.push(card);
 }
 
 // 相手の行動（超シンプルAI）
@@ -486,8 +499,8 @@ function render() {
   const handDiv = document.getElementById("hand");
   handDiv.innerHTML = "";
 
-  if (state.turn === 0) {
-    state.players[0].hand.forEach(card => {
+  if (state.turn === myPlayerIndex) {
+    state.players[myPlayerIndex].hand.forEach(card, index => {
       const div = document.createElement("div");
       const img = document.createElement("img");
       div.classList.add("handCard")
@@ -519,7 +532,7 @@ function render() {
       div.appendChild(img);
 
       div.onclick = () => {
-        playCard(card);
+        playCard(index);
       }
 
       div.onmouseover = () => {
@@ -532,7 +545,7 @@ function render() {
 
       handDiv.appendChild(div);
     });
-  } else if(state.players[1].hp > 0){
+  } else if(state.players[myPlayerIndex - 1].hp > 0){
     handDiv.innerHTML = "<i>相手のターン...</i>";
   }
 
