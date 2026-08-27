@@ -30,8 +30,6 @@ function joinRoom(id) {
         if (myPlayerIndex === 0) broadcastState();
       }
     });
-
-    render();
 }
 
 
@@ -43,9 +41,10 @@ let roomId = null;
 document.getElementById("hostBtn").onclick = () => {
   roomId = Math.floor(1000 + Math.random() * 9000).toString();
   myPlayerIndex = 0;
-  initGame();
+  
   joinRoom(roomId);
   alert(`部屋コード【 ${roomId} 】を相手に教えてください!`);
+  initGame();
 };
 
 document.getElementById("joinBtn").onclick = () => {
@@ -280,6 +279,7 @@ function initGame() {
     state.players[1].hand.push(randomCard());
   }
   alignById(state.players[0].hand);
+  alignById(state.players[1].hand);
   render();
 }
 
