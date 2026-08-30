@@ -53,22 +53,27 @@ let myPlayerIndex = null;
 let roomId = null;
 
 document.getElementById("hostBtn").onclick = () => {
-  roomId = Math.floor(1000 + Math.random() * 9000).toString();
-  myPlayerIndex = 0;
+  if(myPlayerIndex === null){
+    roomId = Math.floor(1000 + Math.random() * 9000).toString();
+    myPlayerIndex = 0;
+    
+    initGame();
+    joinRoom(roomId);
+    alert(`部屋コード【 ${roomId} 】を相手に教えてください!`);
+  }
   
-  initGame();
-  joinRoom(roomId);
-  alert(`部屋コード【 ${roomId} 】を相手に教えてください!`);
   
 };
 
 document.getElementById("joinBtn").onclick = () => {
-  const inputRoom = prompt("部屋コード（4桁の数字）を入力してください!：");
-  if (!inputRoom) return;
-
-  roomId = inputRoom;
-  myPlayerIndex = 1;
-  joinRoom(roomId);
+  if(myPlayerIndex === null){
+    const inputRoom = prompt("部屋コード（4桁の数字）を入力してください!：");
+    if (!inputRoom) return;
+    
+    roomId = inputRoom;
+    myPlayerIndex = 1;
+    joinRoom(roomId);
+  }
 
 };
 
