@@ -467,19 +467,20 @@ function executeCardLogic(playerIndex, cardIndex) {
   //   addLog("/-------------------/");
   //   defeat_sound.play();
   // }
-  if(enemy.hp <= 0 && state.turn === myPlayerIndex){
+  if(enemy.hp <= 0){
     addLog("");
     addLog("/-------------------/");
-    addLog("/------勝利！----/");
+    addLog(`/プレイヤー${playerIndex+1}の勝利！/`);
     addLog("/-------------------/");
     starting_bell_sound.play();
-  }else if(p.hp <= 0 && state.turn !== myPlayerIndex){
-    addLog("");
-    addLog("/-------------------/");
-    addLog("/------敗北...----/");
-    addLog("/-------------------/");
-    defeat_sound.play();
   }
+  // else if(p.hp <= 0 && state.turn !== myPlayerIndex){
+  //   addLog("");
+  //   addLog("/-------------------/");
+  //   addLog("/------敗北...----/");
+  //   addLog("/-------------------/");
+  //   defeat_sound.play();
+  // }
 
   alignById(state.players[0].hand);
   alignById(state.players[1].hand);
