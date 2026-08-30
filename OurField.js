@@ -35,6 +35,13 @@ function joinRoom(id) {
         render();
         // ホストなら接続完了時に初期データをゲストへ同期
         if (myPlayerIndex === 0) broadcastState();
+        if (myPlayerIndex === 1) {
+          channel.send({
+            type: 'broadcast',
+            event: 'join-player',
+            payload: {}
+          });
+        }
       }
     });
 }
@@ -510,7 +517,7 @@ function render() {
   const handDiv = document.getElementById("hand");
   handDiv.innerHTML = "";
 
-  if (state.turn === myPlayerIndex) {
+  if (true) {
     state.players[myPlayerIndex].hand.forEach((card, index) => {
       const div = document.createElement("div");
       const img = document.createElement("img");
@@ -582,5 +589,3 @@ function addLog(text) {
 // }).subscribe();
 
 // // ----------------------
-
-
