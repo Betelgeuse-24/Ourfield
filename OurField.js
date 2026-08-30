@@ -473,7 +473,7 @@ function executeCardLogic(playerIndex, cardIndex) {
     addLog("/------勝利！----/");
     addLog("/-------------------/");
     starting_bell_sound.play();
-  }else if(p.hp <= 0 && state.turn === myPlayerIndex){
+  }else if(p.hp <= 0 && state.turn !== myPlayerIndex){
     addLog("");
     addLog("/-------------------/");
     addLog("/------敗北...----/");
