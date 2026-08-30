@@ -7,11 +7,99 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ==========================================
 // リアルタイム通信の部屋を設定
 // ==========================================
-const channel = supabaseClient.channel('game-room', {
-  config: {
-    broadcast: { self: false }
-  }
-});
+
+// const channel = supabaseClient.channel('game-room', {
+//   config: {
+//     broadcast: { self: false }
+//   }
+// });
+
+function joinRoom(id) {
+  channel = supabaseClient.channel(`game-room-${id}`, {
+    config: { broadcast: { self: false } }
+  });
+
+  // イベント受信処理
+  channel
+    .on('broadcast', { event: 'send-action' }, (data) => onReceiveAction(data.payload))
+    .on('broadcast', { event: 'sync-state' }, (data) => onReceiveSync(data.payload))
+    .on('broadcast', { event: 'join-player' }, () => {
+      if (myPlayerIndex === 0) {
+        addLog("対戦相手が参加しました！");
+        broadcastState(); // ゲストが入ってきたから最新状態を送ってあげる！
+      }
+    })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        addLog(`部屋【${id}】に接続完了！`);
+        render();
+        // ホストなら接続完了時に初期データをゲストへ同期
+        if (myPlayerIndex === 0) broadcastState();
+        if (myPlayerIndex === 1) {
+          channel.send({
+            type: 'broadcast',
+            event: 'join-player',
+            payload: {}
+          });
+        }
+      }
+    });
+}
+
+
+
+//プレイヤー識別
+let myPlayerIndex = null;
+let roomId = null;
+
+document.getElementById("hostBtn").onclick = () => {
+  roomId = Math.floor(1000 + Math.random() * 9000).toString();
+  myPlayerIndex = 0;
+  
+  initGame();
+  joinRoom(roomId);
+  alert(`部屋コード【 ${roomId} 】を相手に教えてください!`);
+  
+};
+
+document.getElementById("joinBtn").onclick = () => {
+  const inputRoom = prompt("部屋コード（4桁の数字）を入力してください!：");
+  if (!inputRoom) return;
+
+  roomId = inputRoom;
+  myPlayerIndex = 1;
+  joinRoom(roomId);
+
+};
+
+// ホストから全員（ゲスト）へ最新状態を送信
+function broadcastState() {
+  if (myPlayerIndex !== 0) return; // ホスト以外は送信しない
+  channel.send({
+    type: 'broadcast',
+    event: 'sync-state',
+    payload: { state: state }
+  });
+}
+
+// 【ホスト限定】ゲストから「カード使ったで」と届いたときの処理
+function onReceiveAction(payload) {
+  if (myPlayerIndex !== 0) return; // ホストだけが計算を担当
+
+  const { playerIndex, cardIndex } = payload;
+  executeCardLogic(playerIndex, cardIndex);
+  
+  // 計算結果を最新のstateとして全員に一斉送信！
+  broadcastState();
+  render();
+}
+
+// 【ゲスト限定】ホストから最新状態が届いたときの処理
+function onReceiveSync(payload) {
+  // ホストから届いた最新データを自分の state に上書き！
+  Object.assign(state, payload.state);
+  render();
+}
 
 // ----------------------
 // カード定義
@@ -166,6 +254,7 @@ const cards = [
 
 ];
 
+//効果音リスト
 const starting_bell_sound = new Audio('sounds/bell.wav');
 const defeat_sound = new Audio('sounds/defeat.wav');
 const click_sound = new Audio('sounds/click.wav');
@@ -175,13 +264,12 @@ const wearing_sound = new Audio('sounds/wearing.wav');
 const eating_sound = new Audio('sounds/eating.wav');
 const paper_sound = new Audio('sounds/paper.wav');
 
-// ----------------------
+
 // ゲーム状態
-// ----------------------
 const state = {
   players: [
-    { hp: 400, shield: 0, money: 300, hand: [], blueprints: []},
-    { hp: 400, shield: 0, money: 300, hand: [], blueprints: []}
+    { name: null, hp: 400, shield: 0, money: 300, hand: [], blueprints: []},
+    { name: null, hp: 400, shield: 0, money: 300, hand: [], blueprints: []}
   ],
   turn: 0, // 0 = あなた, 1 = 相手
   log: []
@@ -190,9 +278,8 @@ const state = {
 const rankCardList = [[],[],[],[],[],[],[],[],[],[]];
 const rankPropotion = [12,40,76,94,98,100,0,0,0,0];//sum = 100
 
-// ----------------------
+
 // 初期化
-// ----------------------
 function initGame() {
 
   // ランク別のカードを計測
@@ -207,9 +294,12 @@ function initGame() {
     state.players[1].hand.push(randomCard());
   }
   alignById(state.players[0].hand);
+  alignById(state.players[1].hand);
   render();
 }
 
+
+//シャッフル関数
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -217,10 +307,14 @@ function shuffle(array) {
   }
 }
 
+
+//IDに沿ってカードを整列
 function alignById(array) {
   array.sort((a,b) => a.id - b.id);
 }
 
+
+//確率に応じてランダムなカードを生成
 function randomCard() {
 
   const randomNum = Math.floor(Math.random() * 100);
@@ -243,18 +337,42 @@ function randomCard() {
   return structuredClone(cards[rankCardList[chosenRank][Math.floor(Math.random() * rankCardList[chosenRank].length)]]);
 }//ランクに応じてランダムにカードを選択し、そのコピーを返す
 
-// ----------------------
-// カード使用処理
-// ----------------------
-function playCard(card, isRemote = false) {
+// カード使用の実行（クリック時）
+function playCard(cardIndex) {
+  // 自分のターンじゃないなら操作不可
+  if (state.turn !== myPlayerIndex) {
+    addLog("相手のターンです！");
+    return;
+  }
 
-  // if (!isRemote && state.turn !== 0) {
+  if (myPlayerIndex === 0) {
+    // 【ホストの場合】自分で直接処理を計算して、結果を全員に配る
+    executeCardLogic(0, cardIndex);
+    broadcastState();
+    render();
+  } else {
+    // 【ゲストの場合】ホストに「このカード使ったで」とお願いを送るだけ
+    channel.send({
+      type: 'broadcast',
+      event: 'send-action',
+      payload: { playerIndex: 1, cardIndex: cardIndex }
+    });
+  }
+}
+
+// カード実行処理
+function executeCardLogic(playerIndex, cardIndex) {
+
+  // if (!isRemote && state.turn !== myPlayerIndex) {
   //   addLog("相手のターンです！");
   //   return;
-  // }
+  // }//自身がこの関数を遠隔で操作しておらず、かつ自分のターンのときは操作できない
 
-  const p = state.players[state.turn];
-  const enemy = state.players[1 - state.turn];
+  const p = state.players[playerIndex];
+  const enemy = state.players[1 - playerIndex];
+  const card = p.hand[cardIndex];
+
+  if (!card) return;
 
   if (card.type === "attack") {
     const dmg = Math.max(0, card.power - enemy.shield);
@@ -321,21 +439,8 @@ function playCard(card, isRemote = false) {
     }
   }
 
-  //通信処理
-
-  // if (!isRemote) {
-  //   channel.send({
-  //     type: 'broadcast',
-  //     event: 'play-card',
-  //     payload: { 
-  //       cardId: card.id, 
-  //       playerIndex: state.turn
-  //     }
-  //   });
-  // }
-
   // 手札から削除
-  p.hand = p.hand.filter(c => c !== card);
+  p.hand.splice(cardIndex, 1);
   //state.discard.push(card);
 
   // ターン交代
@@ -345,15 +450,28 @@ function playCard(card, isRemote = false) {
   drawCard(state.turn);
 
   // 相手のターンなら自動行動
-  if (enemy.hp > 0 && state.turn === 1) {
-    setTimeout(enemyTurn, 800);
-  }else if(enemy.hp <= 0 && state.turn === 1){
+  // if (enemy.hp > 0 && state.turn === 1) {
+  //   setTimeout(enemyTurn, 800);
+  // }else if(enemy.hp <= 0 && state.turn === 1){
+  //   addLog("");
+  //   addLog("/-------------------/");
+  //   addLog("/------勝利！----/");
+  //   addLog("/-------------------/");
+  //   starting_bell_sound.play();
+  // }else if(enemy.hp <= 0 && state.turn === 0){
+  //   addLog("");
+  //   addLog("/-------------------/");
+  //   addLog("/------敗北...----/");
+  //   addLog("/-------------------/");
+  //   defeat_sound.play();
+  // }
+  if(enemy.hp <= 0 && state.turn === myPlayerIndex){
     addLog("");
     addLog("/-------------------/");
     addLog("/------勝利！----/");
     addLog("/-------------------/");
     starting_bell_sound.play();
-  }else if(enemy.hp <= 0 && state.turn === 0){
+  }else if(enemy.hp <= 0 && state.turn === myPlayerIndex){
     addLog("");
     addLog("/-------------------/");
     addLog("/------敗北...----/");
@@ -362,30 +480,28 @@ function playCard(card, isRemote = false) {
   }
 
   alignById(state.players[0].hand);
+  alignById(state.players[1].hand);
   render();
 }
 
+//引数番目のプレイヤーがカードを引く
 function drawCard(playerIndex) {
   const card = randomCard();
-  if(state.players[playerIndex].blueprints.includes(card.id)){
-    drawCard(playerIndex);
-  }else{
-    state.players[playerIndex].hand.push(card);
+  // 設計図が被っている間はループして引き直す
+  while (card.type === "blueprint" && state.players[playerIndex].blueprints.includes(card.id)) {
+    card = randomCard();
   }
+  state.players[playerIndex].hand.push(card);
 }
 
-// ----------------------
 // 相手の行動（超シンプルAI）
-// ----------------------
 function enemyTurn() {
   const enemy = state.players[1];
   const card = enemy.hand[Math.floor(Math.random() * enemy.hand.length)];
   playCard(card);
 }
 
-// ----------------------
 // 描画
-// ----------------------
 const chosenCardDiv = document.getElementById("chosenCard");
 const cardInfoBoxDiv = document.getElementById("cardInfoBox");
 
@@ -401,8 +517,8 @@ function render() {
   const handDiv = document.getElementById("hand");
   handDiv.innerHTML = "";
 
-  if (state.turn === 0) {
-    state.players[0].hand.forEach(card => {
+  if (true) {
+    state.players[myPlayerIndex].hand.forEach((card, index) => {
       const div = document.createElement("div");
       const img = document.createElement("img");
       div.classList.add("handCard")
@@ -434,7 +550,7 @@ function render() {
       div.appendChild(img);
 
       div.onclick = () => {
-        playCard(card);
+        playCard(index);
       }
 
       div.onmouseover = () => {
@@ -447,17 +563,19 @@ function render() {
 
       handDiv.appendChild(div);
     });
-  } else if(state.players[1].hp > 0){
+  } else if(state.players[myPlayerIndex - 1].hp > 0){
     handDiv.innerHTML = "<i>相手のターン...</i>";
   }
 
   document.getElementById("log").innerHTML = state.log.join("<br>");
 }
 
+//ログを追加
 function addLog(text) {
   state.log.unshift(text);
 }
 
+// //
 // channel.on('broadcast', { event: 'play-card' }, (data) => {
 //   const { cardId, playerIndex } = data.payload;
 
@@ -470,6 +588,4 @@ function addLog(text) {
 //   }
 // }).subscribe();
 
-// ----------------------
-initGame();
-
+// // ----------------------
