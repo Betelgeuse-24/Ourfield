@@ -343,6 +343,8 @@ function playCard(cardIndex) {
   if (state.turn !== myPlayerIndex) {
     addLog("相手のターンです！");
     return;
+  }else if(state.players[myPlayerIndex].hp <= 0){
+    addLog("もう敗北しています！")
   }
 
   if (myPlayerIndex === 0) {
@@ -471,7 +473,7 @@ function executeCardLogic(playerIndex, cardIndex) {
     addLog("/------勝利！----/");
     addLog("/-------------------/");
     starting_bell_sound.play();
-  }else if(enemy.hp <= 0 && state.turn === myPlayerIndex){
+  }else if(p.hp <= 0 && state.turn === myPlayerIndex){
     addLog("");
     addLog("/-------------------/");
     addLog("/------敗北...----/");
