@@ -23,9 +23,10 @@ function joinRoom(id) {
   channel
     .on('broadcast', { event: 'send-action' }, (data) => onReceiveAction(data.payload))
     .on('broadcast', { event: 'sync-state' }, (data) => onReceiveSync(data.payload))
-    .on('broadcast', { event: 'join-player' }, () => {
+    .on('broadcast', { event: 'join-player' }, (data) => {
       if (myPlayerIndex === 0) {
-        addLog("対戦相手が参加しました！");
+        state.players[1].name = data.payload.guestName;
+        addLog(`${state.players[1].name}が参加しました！`);
         broadcastState(); // ゲストが入ってきたから最新状態を送ってあげる！
       }
     })
@@ -35,11 +36,14 @@ function joinRoom(id) {
         render();
         // ホストなら接続完了時に初期データをゲストへ同期
         if (myPlayerIndex === 0) broadcastState();
+        //ゲスト側は参加したことを通達
         if (myPlayerIndex === 1) {
           channel.send({
             type: 'broadcast',
             event: 'join-player',
-            payload: {}
+            payload: {
+              guestName: state.players[1].name
+            }
           });
         }
       }
@@ -54,6 +58,10 @@ let roomId = null;
 
 document.getElementById("hostBtn").onclick = () => {
   if(myPlayerIndex === null){
+
+    const inputName = prompt("名前を入力してください！") || "プレイヤー1";
+    state.players[0].name = inputName;
+
     roomId = Math.floor(1000 + Math.random() * 9000).toString();
     myPlayerIndex = 0;
     
@@ -69,7 +77,10 @@ document.getElementById("joinBtn").onclick = () => {
   if(myPlayerIndex === null){
     const inputRoom = prompt("部屋コード（4桁の数字）を入力してください!：");
     if (!inputRoom) return;
-    
+
+    const inputName = prompt("名前を入力してください！") || "プレイヤー2"
+    state.players[1].name = inputName;
+
     roomId = inputRoom;
     myPlayerIndex = 1;
     joinRoom(roomId);
@@ -79,6 +90,8 @@ document.getElementById("joinBtn").onclick = () => {
 
 // ホストから全員（ゲスト）へ最新状態を送信
 function broadcastState() {
+  document.getElementById("p1name").innerText = state.players[0].name;
+  document.getElementById("p2name").innerText = state.players[1].name;
   if (myPlayerIndex !== 0) return; // ホスト以外は送信しない
   channel.send({
     type: 'broadcast',
@@ -103,6 +116,8 @@ function onReceiveAction(payload) {
 function onReceiveSync(payload) {
   // ホストから届いた最新データを自分の state に上書き！
   Object.assign(state, payload.state);
+  document.getElementById("p1name").innerText = state.players[0].name;
+  document.getElementById("p2name").innerText = state.players[1].name;
   render();
 }
 
@@ -273,8 +288,8 @@ const paper_sound = new Audio('sounds/paper.wav');
 // ゲーム状態
 const state = {
   players: [
-    { name: null, hp: 400, shield: 0, money: 300, hand: [], blueprints: []},
-    { name: null, hp: 400, shield: 0, money: 300, hand: [], blueprints: []}
+    { name: "プレイヤー1", hp: 400, shield: 0, money: 300, hand: [], blueprints: []},
+    { name: "プレイヤー2", hp: 400, shield: 0, money: 300, hand: [], blueprints: []}
   ],
   turn: 0, // 0 = あなた, 1 = 相手
   log: []
@@ -475,7 +490,7 @@ function executeCardLogic(playerIndex, cardIndex) {
   if(enemy.hp <= 0){
     addLog("");
     addLog("/-------------------/");
-    addLog(`/プレイヤー${playerIndex+1}の勝利！/`);
+    addLog(`/${state.players[playerIndex].name}の勝利！/`);
     addLog("/-------------------/");
     starting_bell_sound.play();
   }
